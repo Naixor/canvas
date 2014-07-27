@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Word Particle Effect</title>
+</head>
+<body>
+	<canvas width="500px" height="500px" style="border: 1px solid #000;box-shadow: 2px 2px 3px #000"></canvas>
+	<br>
+	<input type="text"><button id="ok">ok</button>
+	<script>
+		var canvas = document.querySelector('body canvas'),
+			ctx = canvas.getContext('2d');
+			ctx.fillStyle = "#000";
+			ctx.fillRect(0, 0, canvas.width, canvas.height);
+		function draw_particle_word(word) {
+			var text = word;
+			ctx.fillStyle = "#000";
+			ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+			ctx.fillStyle = "rgba(255,255,255, 1)";
+			ctx.font = "bolder 400px 宋体";
+			ctx.textBaseline = "top";
+			ctx.fillText(text, 20, 20);
+
+			// console.log(ctx.font.match(/\d+/)[0]);
+
+			var ctxData,
+				word_pixs = [],
+				word_size = ctx.font.match(/\d+/)[0];
+
+			for (var i = 0; i < word_size; i+=16) {
+				for(var j = 0; j < word_size; j+=16) {
+					ctxData = ctx.getImageData(j+20, i+20, 1, 1)['data'][0];
+					if (ctxData == 255) {
+						var word_pix = {
+							x: j+20,
+							y: i+20,
+							r: 5+Math.ceil(Math.random()*5)
+						}
+						word_pixs.push(word_pix);
+					}
+				}
+			};
+			ctx.fillStyle = "rgba(0,0,0,1)";
+			ctx.fillRect(0, 0, canvas.width, canvas.height);
+			for (var i = 0; i < word_pixs.length; i++) {
+				ctx.fillStyle = "rgba(255,255,255,"+(0.5+Math.random()*0.5)+")";
+
+				ctx.beginPath();
+				ctx.arc(word_pixs[i].x, word_pixs[i].y, word_pixs[i].r, 0, Math.PI*2, true);
+				ctx.closePath();
+				ctx.fill();
+			};
+		}
+		draw_particle_word("心");
+		var ok_btn = document.querySelector("body button");
+		ok_btn.onclick = function () {
+			draw_particle_word(document.querySelector("body input[type=text]").value);
+		}
+	</script>
+</body>
+</html>
