@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Get Image Data</title>
+</head>
+<body>
+	<canvas width="500px" height="500px" style="border: 1px solid #000;box-shadow: 2px 2px 3px #000"></canvas>
+	<div id="log" style="width: 500px; height: 500px; overflow-y: scroll;"></div>
+	<script>
+		var canvas = document.querySelector('body canvas'),
+			ctx = canvas.getContext('2d'),
+			image = new Image();
+		image.onload = function (){
+			ctx.drawImage(image, 0, 0, canvas.width/2, canvas.height/2);		
+		}
+		image.src = 'yanzi.jpg';
+
+		canvas.onclick = function() {
+			var imagedata = ctx.getImageData(0, 0, canvas.width/2, canvas.height/2),
+			pixs = imagedata.data;
+
+			for(var i = 0, len = pixs.length;i < len;i += 4){
+				pixs[i] = 255-pixs[i];
+				pixs[i+1] = 255-pixs[i+1];
+				pixs[i+2] = 255-pixs[i+2];
+				pixs[i+3] = pixs[i+3]*0.5;
+			}
+			ctx.putImageData(imagedata, canvas.width/2, canvas.height/2);
+		}
+	</script>
+</body>
+</html>
