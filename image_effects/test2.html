@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+	<title>波纹效果</title>
+	<style>
+		* {
+			padding: 0;
+			-webkit-user-select: none;
+		}
+		canvas {
+			position: relative;
+			margin: 10px auto;
+		}
+	</style>
+</head>
+<body>
+	<canvas id="canvas" width="300" height="200">
+		<img src="1.jpg" alt="">
+		<img src="2.jpg" alt="">
+	</canvas>
+	<script>
+		var canvas = document.getElementById("canvas");
+		var base_canvas = document.createElement("canvas");
+		var tar_canvas = document.createElement("canvas");
+		function getPointOnCanvas(canvas, x, y) {  
+		    var bbox = canvas.getBoundingClientRect();  
+		    return { 
+		    	x: x - bbox.left * (canvas.width  / bbox.width),  
+				y: y - bbox.top  * (canvas.height / bbox.height)  
+			}  
+		}  
+
+		var context = canvas.getContext("2d");
+		var base_context = base_canvas.getContext("2d");
+		var tar_context = tar_canvas.getContext("2d");
+
+		var image = new Image();
+
+		var A = 6;//波纹幅度
+		var B = Math.PI;//波纹周期
+		var Matrix = [];
+
+		function reCalcAB(width, height, imageCX, imageCY, x, y, point){
+			var y0 = 1.0*(y-imageCY);
+			var x0 = 1.0*(x-imageCX);
+			var theta0 = Math.atan2(y0,x0);//转化成角坐标
+			var r0 = Math.sqrt(x0*x0+y0*y0);//初始半径
+			var r1 = r0+ A*width*0.01*Math.sin(B*0.1*r0);//计算新的半径
+			
+			point[0] = imageCX + r1*Math.cos(theta0);
+			point[1] = imageCY + r1*Math.sin(theta0);//转换后的坐标
+			if(point[0]>width)
+				point[0] = width-1;
+			else if(point[0]<0)
+				point[0] = 0;                //超出边界的处理
+			if(point[1]>height)
+				point[1] = height-1;
+			else if(point[1]<0)
+				point[1] = 0;
+		}
+		function BLIP(ctxData, point, channel) {
+			var a = point[0], b = point[1];
+			var x = [], y = [];
+			x.push(parseInt(point[0])); 
+			y.push(parseInt(point[1]));
+			x.push(x[0]+1)
+			y.push(y[0]+1)
+
+			var data1 = ctxData.data[(x[0] + y[0] * canvas.width) * 4 + channel]
+			var data2 = ctxData.data[(x[1] + y[0] * canvas.width) * 4 + channel]
+			var data3 = ctxData.data[(x[0] + y[1] * canvas.width) * 4 + channel]
+			var data4 = ctxData.data[(x[1] + y[1] * canvas.width) * 4 + channel]
+
+			if (Math.abs(a - x[0]) < 0.00001 && Math.abs(b- x[1]) < 0.00001) {
+				return data1
+			}
+			var dx = parseFloat(a-x[0]);//x轴的比例
+			var dy = parseFloat(b-y[0]);//y轴的比例
+
+			var DataTemp1 = data1*(1.0-dx) + data2*dx;
+			var DataTemp2 = data3*(1.0-dx) + data4*dx;
+			return DataTemp1*(1.0-dy) + DataTemp2*dy;//核心插值过程
+		}
+
+		function WaterFilter(canvas, cx, cy, _ctxData){
+			var _canvas = document.createElement('canvas');
+			var width = canvas.width;
+			var height = canvas.height;
+			_canvas.width = width;
+			_canvas.height = height;
+			var context = canvas.getContext('2d');
+			var _context = _canvas.getContext('2d');
+			var ctxData = context.getImageData(0, 0, width, height);
+			var sx = 0, sy = 0;
+			for (var i = 0; i < width; i++) {
+				for(var j = 0; j < height; j++) {
+					var index = (i + j * width) * 4;
+					var point = [i, j]
+					reCalcAB(width, height, cx, cy, i, j, point)
+					ctxData.data[index] = BLIP(_ctxData, point, 0)
+					ctxData.data[index+1] = BLIP(_ctxData, point, 1)
+					ctxData.data[index+2] = BLIP(_ctxData, point, 2)				
+				}
+			}
+			_context.putImageData(ctxData, 0, 0);
+			return _canvas
+		}
+		var _ctxData = undefined;
+		var canvas_filter = undefined;
+
+		var count = 0;
+		image.onload = function(){
+			var width = canvas.width;
+			var height = canvas.height;
+			base_canvas.width = width;
+			base_canvas.height = height;
+			tar_canvas.width = width;
+			tar_canvas.height = height;
+			context.drawImage(image, 0, 0, width, height)
+			base_context.drawImage(image, 0, 0, width, height)
+			_ctxData = context.getImageData(0, 0, width, height)
+
+			var pos = getPointOnCanvas(canvas, width/2, height/2)
+
+
+			var image1 = new Image();
+			image1.onload = function (){
+				tar_context.drawImage(image1, 0, 0, tar_canvas.width, tar_canvas.height)
+				var tar_ctxData = tar_context.getImageData(0, 0, width, height)
+				var tar_canvas_filter = WaterFilter(tar_canvas, pos['x'], pos['y'], tar_ctxData)
+
+				canvas.addEventListener('mouseup', function(event){
+					var x = event.pageX - window.scrollX;
+					var y = event.pageY - window.scrollY;
+					
+					var r = 0, dr = 30;
+					if ((++count)%2) {
+						var timer = setInterval(function(){
+							if (r > dr/2) {
+								context.save()
+								context.beginPath();
+								context.arc(pos['x'], pos['y'], r-dr/2, 0, Math.PI * 2,false);
+								context.arc(pos['x'], pos['y'], r, 0, Math.PI * 2,true);
+								context.closePath();
+								context.clip();
+								context.drawImage(canvas_filter, 0, 0, width, height);
+								context.restore();
+							}else {
+								context.save()
+								context.beginPath();
+								context.arc(pos['x'], pos['y'], r, 0, Math.PI * 2,true);
+								context.closePath();
+								context.clip();
+								context.drawImage(canvas_filter, 0, 0, width, height);
+								context.restore();
+							}
+							if (r > dr) {
+								context.save()
+								context.beginPath();
+								context.arc(pos['x'], pos['y'], r-dr, 0, Math.PI * 2,false);
+								context.arc(pos['x'], pos['y'], r-dr/2, 0, Math.PI * 2,true);
+								context.closePath();
+								context.clip();
+								context.drawImage(tar_canvas_filter, 0, 0, width, height);
+								context.restore();
+								context.save();
+								context.beginPath();
+								context.arc(pos['x'], pos['y'], r-dr, 0, Math.PI * 2,false);
+								context.clip();
+								context.closePath();
+								context.drawImage(tar_canvas, 0, 0, width, height);
+								context.restore()
+							}else if (r > dr/2) {
+								context.save()
+								context.beginPath();
+								context.arc(pos['x'], pos['y'], r-dr/2, 0, Math.PI * 2,true);
+								context.closePath();
+								context.clip();
+								context.drawImage(tar_canvas_filter, 0, 0, width, height);
+								context.restore();
+							}
+							r+=5;
+							if (r-2*dr > Math.sqrt(width*width+height*height)/2) {
+								clearTimeout(timer);
+							};
+						}, 26)
+					}else {
+						var timer = setInterval(function(){
+							if (r > dr/2) {
+								context.save()
+								context.beginPath();
+								context.arc(pos['x'], pos['y'], r-dr/2, 0, Math.PI * 2,false);
+								context.arc(pos['x'], pos['y'], r, 0, Math.PI * 2,true);
+								context.closePath();
+								context.clip();
+								context.drawImage(tar_canvas_filter, 0, 0, width, height);
+								context.restore();
+							}else {
+								context.save()
+								context.beginPath();
+								context.arc(pos['x'], pos['y'], r, 0, Math.PI * 2,true);
+								context.closePath();
+								context.clip();
+								context.drawImage(tar_canvas_filter, 0, 0, width, height);
+								context.restore();
+							}
+							if (r > dr) {
+								context.save()
+								context.beginPath();
+								context.arc(pos['x'], pos['y'], r-dr, 0, Math.PI * 2,false);
+								context.arc(pos['x'], pos['y'], r-dr/2, 0, Math.PI * 2,true);
+								context.closePath();
+								context.clip();
+								context.drawImage(canvas_filter, 0, 0, width, height);
+								context.restore();
+								context.save();
+								context.beginPath();
+								context.arc(pos['x'], pos['y'], r-dr, 0, Math.PI * 2,false);
+								context.clip();
+								context.closePath();
+								context.drawImage(base_canvas, 0, 0, width, height);
+								context.restore()
+							}else if (r > dr/2) {
+								context.save()
+								context.beginPath();
+								context.arc(pos['x'], pos['y'], r-dr/2, 0, Math.PI * 2,true);
+								context.closePath();
+								context.clip();
+								context.drawImage(canvas_filter, 0, 0, width, height);
+								context.restore();
+							}
+							r+=5;
+							if (r-2*dr > Math.sqrt(width*width+height*height)/2) {
+								clearTimeout(timer);
+							};
+						}, 26)
+					}
+					
+				}, false);
+			}
+			image1.src = "2.jpg"
+			canvas_filter = WaterFilter(canvas, pos['x'], pos['y'], _ctxData);	
+		}
+		image.src = "1.jpg";
+	</script>
+</body>
+</html>
