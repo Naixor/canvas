@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Bezier</title>
+</head>
+<body>
+	<canvas width="100" height="100"></canvas>
+	<script type="text/javascript" src="Math.js"></script>
+	<script>
+	    var points = [new Math.Vector(0, 100), new Math.Vector(50, 100), new Math.Vector(50, 0), new Math.Vector(100, 0)];
+
+        var cb = new Math.CubicBezier(points);
+        var p;
+        var t = 0;
+        var canvas = document.querySelector('canvas');
+        var ctx = canvas.getContext('2d');
+        var WIDTH = canvas.width, HEIGHT = canvas.height;
+
+        ctx.strokeStyle = "rgb(255, 255, 255)";
+        ctx.strokeWidth = 2;
+        ctx.clearRect(0, 0, WIDTH, HEIGHT);
+		ctx.fillStyle = 'rgba(0, 150, 255, 0.7)';
+		ctx.fillRect(0, 0, WIDTH, HEIGHT);
+        ctx.beginPath();
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.moveTo(0, 100);
+        var inter = setInterval(function(){
+            t += 0.01;
+            if(t > 1){
+                clearInterval(inter);
+            }
+            p = cb.get(t);
+	        // ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p.x, p.y);
+	        ctx.stroke();    
+        },10)
+
+        ctx.moveTo(0, 0)
+        ctx.bezierCurveTo(50, 0, 50, 100, 100, 100)
+	</script>
+</body>
+</html>

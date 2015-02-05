@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Sin</title>
+</head>
+<body>
+	<audio id="audio" autoplay="autoplay" loop="loop">
+		<source src="bgmusic.mp3"></source>
+	</audio>
+	<canvas width="100" height="100" style="border-radius:50%;"></canvas>
+	<script type="text/javascript" src="Math.js"></script>
+	<script>
+	    var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+		var canvas = document.querySelector('canvas');
+		var ctx = canvas.getContext('2d');
+		var WIDTH = canvas.width;
+		var HEIGHT = canvas.height;
+
+		var drawVisual; // requestAnimationFrame
+
+	    var analyser = audioCtx.createAnalyser();
+	    var distortion = audioCtx.createWaveShaper();
+	    var gainNode = audioCtx.createGain();
+	    var biquadFilter = audioCtx.createBiquadFilter();
+
+	    var speed = 2;
+		var dx = 0;
+		var DX = 1; // 周期控制
+		var dt = WIDTH;
+		var T = WIDTH/2; //静态常量 一个波峰\波谷的周期
+		var halfT = T/2; //静态常量 确定bezier曲线辅助点的横轴距离
+		var symmetry = -1; //曲线对称系数
+ 		var startY = HEIGHT/2;
+		var ps = new Array(WIDTH);
+
+		for(var i = 0;i < WIDTH;i++){
+			ps[i] = HEIGHT/2;
+		}
+
+		ctx.lineWidth = 2;
+		ctx.strokeStyle = 'rgba(0, 255, 255, 0.8)';
+		ctx.moveTo(0, HEIGHT/2);
+		ctx.lineTo(WIDTH, HEIGHT/2);				
+
+		var audio = document.querySelector('#audio');
+		audio.onplay = function() {
+			source = audioCtx.createMediaElementSource(audio);
+			source.connect(analyser);
+			analyser.connect(distortion);
+			distortion.connect(biquadFilter);
+			biquadFilter.connect(gainNode);
+			gainNode.connect(audioCtx.destination);
+			visualize();
+		}
+
+		function visualize() {
+			analyser.fftSize = 2048;
+			var bufferLength = analyser.frequencyBinCount;
+			var index = 0;
+			var dataArray = new Uint8Array(1);
+			var A = 0;
+			var cb = null;
+			var preBezierPoint = {x: 0, y: startY};
+			
+			ctx.lineWidth = 2;
+			ctx.strokeStyle = 'rgb(255, 255, 255)';
+			ctx.lineJoin = 'round';
+			ctx.lineCap = 'round';
+			
+			function draw(){
+				drawVisual = requestAnimationFrame(draw);
+
+				ctx.clearRect(0, 0, WIDTH, HEIGHT);
+				ctx.fillStyle = 'rgba(0, 150, 255, 0.7)';
+				ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+				ctx.beginPath();
+				for (var i = 0; i < WIDTH; i++) {
+					var p = ps[i];
+					ctx.lineTo(WIDTH-i, p);
+				}
+				ctx.stroke();
+				for(var i = 0;i < speed;i++){
+					if (dx%T === 0) {
+						analyser.getByteTimeDomainData(dataArray);
+						A = dataArray[0]/5.12;
+						symmetry = symmetry.inverse();
+						var x1 = preBezierPoint.x + halfT,
+							x2 = preBezierPoint.x + T,
+							y1 = symmetry*A + startY;
+
+						cb = new Math.CubicBezier([
+							new Math.Vector(preBezierPoint),
+							new Math.Vector(x1, preBezierPoint.y),
+							new Math.Vector(x1, y1),
+							new Math.Vector(x2, y1)
+						])
+						preBezierPoint = {x: x2, y: y1}
+					}
+					var np = cb.get((dx%T)/T);
+					ps.unshift(np.y);
+					ps.pop();
+
+					dx += DX;
+				}
+			}
+			draw();
+		}
+	</script>
+</body>
+</html>

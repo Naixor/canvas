@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Sin</title>
+</head>
+<body>
+	<audio id="audio" autoplay="autoplay" loop="loop">
+		<source src="bgmusic.mp3"></source>
+	</audio>
+	<canvas width="100" height="100" style="border-radius:50%;"></canvas>
+	<script>
+	    var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+		var canvas = document.querySelector('canvas');
+		var ctx = canvas.getContext('2d');
+		var WIDTH = canvas.width;
+		var HEIGHT = canvas.height;
+
+		var drawVisual; // requestAnimationFrame
+
+	    var analyser = audioCtx.createAnalyser();
+	    var distortion = audioCtx.createWaveShaper();
+	    var gainNode = audioCtx.createGain();
+	    var biquadFilter = audioCtx.createBiquadFilter();
+
+	    var speed = 2;
+		var dx = 0;
+		var DX = WIDTH/25;
+		var dt = 2*WIDTH;
+		var T = Math.PI / dt;
+		var startY = HEIGHT/2;
+		var ys = new Array(WIDTH);
+
+		for(var i = 0;i < WIDTH;i++){
+			ys[i] = HEIGHT/2;
+		}
+
+		ctx.lineWidth = 2;
+		ctx.strokeStyle = 'rgba(0, 255, 255, 0.8)';
+		ctx.moveTo(0, HEIGHT/2);
+		ctx.lineTo(WIDTH, HEIGHT/2);				
+
+		var audio = document.querySelector('#audio');
+		audio.onplay = function(){
+			source = audioCtx.createMediaElementSource(audio);
+			source.connect(analyser);
+			analyser.connect(distortion);
+			distortion.connect(biquadFilter);
+			biquadFilter.connect(gainNode);
+			gainNode.connect(audioCtx.destination);
+			visualize();
+		}
+
+		function visualize() {
+			analyser.fftSize = 2048;
+			var bufferLength = analyser.frequencyBinCount;
+			var index = 0;
+			var dataArray = new Uint8Array(1);
+			var A = 0;
+
+			ctx.lineWidth = 2;
+			ctx.strokeStyle = 'rgb(255, 255, 255)';
+			ctx.lineJoin = 'round';
+			ctx.lineCap = 'round';
+
+			function draw(){
+				drawVisual = requestAnimationFrame(draw);
+
+				ctx.clearRect(0, 0, WIDTH, HEIGHT);
+				ctx.fillStyle = 'rgba(0, 150, 255, 0.7)';
+				ctx.fillRect(0, 0, WIDTH, HEIGHT);
+				
+				ctx.beginPath();
+				for (var i = 0; i < WIDTH; i++) {
+					ctx.lineTo(WIDTH-i, ys[i]);
+				}
+				ctx.stroke();
+				for(var i = 0;i < speed;i++){
+					if (dx%dt === 0) {
+						analyser.getByteTimeDomainData(dataArray);
+						A = dataArray[0]/5.12;
+					}
+					ys.unshift(A*Math.sin(T*dx) + startY);
+					ys.pop();
+					dx += DX;
+				}
+			}
+			draw();
+		}
+	</script>
+</body>
+</html>
