@@ -1,42 +1,44 @@
 <!doctype html>
 <html lang="en">
 <head>
-	<meta charset="UTF-8">
-	<title>Get Image Data</title>
+    <meta charset="UTF-8">
+    <title>Get Image Data</title>
 </head>
 <body>
-	<canvas width="1600px" height="1200px" style="border: 1px solid #000;box-shadow: 2px 2px 3px #000"></canvas>
-	<div id="log" style="width: 1600px; height: 1200px; overflow-y: scroll;"></div>
-	<script>
-		var canvas = document.querySelector('body canvas'),
-			ctx = canvas.getContext('2d'),
-			image = new Image();
+    <canvas width="1600px" height="1200px" style="border: 1px solid #000;box-shadow: 2px 2px 3px #000"></canvas>
+    <div id="log" style="width: 1600px; height: 1200px; overflow-y: scroll;"></div>
+    <script>
+        var canvas = document.querySelector('body canvas'),
+            ctx = canvas.getContext('2d'),
+            image = new Image();
         
         var width = canvas.width/4;
         var height = canvas.height/3;
 
-		image.onload = function (){
-			ctx.drawImage(image, 0, 0, width, height);		
-		}
-		image.src = '10.jpg';
-		
+        image.onload = function (){
+            ctx.drawImage(image, 0, 0, width, height);      
+        }
+        image.src = '10.jpg';
+        
         var index = 1;
-		canvas.onclick = function() {
-			if (index > 11) {
-				return;
-			};
-			var imagedata = ctx.getImageData(0, 0, width, height),
-			pixs = imagedata.data;
+        canvas.onclick = function() {
+            if (index > 11) {
+                return;
+            };
+            var imagedata = ctx.getImageData(0, 0, width, height),
+            pixs = imagedata.data;
 
-			switch(index) {
-				case 1: Revert(pixs); break;
-				case 2: Trash(pixs); break;
-				case 3: Sharp(pixs, width, 5); break;
-				case 4: Gauss(pixs, width, height, 3, 3); break;
-				case 5: Noise(pixs, width, height, 50); break;
-				case 6: Dotted(pixs, width, height, 3, 3); break;
-                case 7: Fudiao(pixs, width, height); break;
-                case 8: {
+            switch(index) {
+                case 1: Revert(pixs); break;
+                case 2: Rgba01(pixs); break;
+                case 3: Gray(pixs); break;
+                case 4: Trash(pixs); break;
+                case 5: Sharp(pixs, width, 5); break;
+                case 6: Gauss(pixs, width, height, 5, 5); break;
+                case 7: Noise(pixs, width, height, 50); break;
+                case 8: Dotted(pixs, width, height, 3, 3); break;
+                case 9: Fudiao(pixs, width, height); break;
+                case 10: {
                     // Revert(pixs);
                     AlphaConvert(pixs, width, height, function(width, height, x, y) {
                         var cx = width >> 1,
@@ -47,10 +49,10 @@
                     break;
                 }
                 case 11: WaterWave(pixs, width, height, width/2, height/2, 10); break;
-			}
-			ctx.putImageData(imagedata, width*(index%4), height*(Math.floor(index/4)));
-			index++;
-		}
+            }
+            ctx.putImageData(imagedata, width*(index%4), height*(Math.floor(index/4)));
+            index++;
+        }
 
         function copyImageData(srcData, width, height) {
             var canvas = document.createElement('canvas');
@@ -60,6 +62,25 @@
             var imgData = context.createImageData(width, height);
             imgData.data.set(srcData);
             return imgData.data;
+        }
+
+        function Gray(data) {
+            for (var i = 0, l = data.length;i < l; i += 4) {
+                var rgb = data[i] * 0.3 + data[i+1] * 0.59 + data[i+2] * 0.11;
+                data[i] = rgb;
+                data[i+1] = rgb;
+                data[i+2] = rgb;
+                // data[i+3] = data[i] > 128 ? 255 : 0;
+            };
+        }
+
+        function Rgba01(data) {
+            for (var i = 0, l = data.length;i < l; i += 4) {
+                data[i] = data[i] > 128 ? 255 : 0;
+                data[i+1] = data[i+1] > 128 ? 255 : 0;
+                data[i+2] = data[i+2] > 128 ? 255 : 0;
+                // data[i+3] = data[i] > 128 ? 255 : 0;
+            };
         }
 
         function AlphaConvert(data, width, height, func) {
@@ -162,8 +183,8 @@
             }
         }
 
-		function Dotted(data, width, height, R, r) {
-			var R = parseInt(R) || 1;
+        function Dotted(data, width, height, R, r) {
+            var R = parseInt(R) || 1;
             //内小圆半径
             var r = parseInt(r) || 1;
 
@@ -211,10 +232,10 @@
                 }
 
             }
-		}
+        }
 
-		function Noise(data, width, height, R) {
-			R = R || 50;
+        function Noise(data, width, height, R) {
+            R = R || 50;
             var xLength = R * 2 + 1;
 
             //区块
@@ -231,9 +252,9 @@
                 }
 
             }
-		}
+        }
 
-		function Gauss(pixes, width, height, radius, sigma) {
+        function Gauss(pixes, width, height, radius, sigma) {
             var gaussMatrix = [],
                 gaussSum = 0,
                 x, y,
@@ -309,41 +330,41 @@
                     // pixes[i + 3] = a ;
                 }
             }
-		}
+        }
 
-		function Revert(pixs) {
-			for(var i = 0, len = pixs.length;i < len;i += 4){
-				pixs[i] = 255 - pixs[i];
-				pixs[i+1] = 255 - pixs[i+1];
-				pixs[i+2] = 255 - pixs[i+2];
-			}
-		}
+        function Revert(pixs) {
+            for(var i = 0, len = pixs.length;i < len;i += 4){
+                pixs[i] = 255 - pixs[i];
+                pixs[i+1] = 255 - pixs[i+1];
+                pixs[i+2] = 255 - pixs[i+2];
+            }
+        }
 
-		function Trash(pixs) {
-			for(var i = 0, len = pixs.length;i < len;i += 4){
-				if((i + 1) % 4){
+        function Trash(pixs) {
+            for(var i = 0, len = pixs.length;i < len;i += 4){
+                if((i + 1) % 4){
                     pixs[i] = pixs[i] > 128 ? 255 : 0;
                 }
             }
-		}
+        }
 
-		function Sharp(pixs, width, lamta) {
-			for(var i = 0, len = pixs.length;i < len;i += 4){
-				var ii = i / 4;
-	            var row = parseInt(ii / width);
-	            var col = ii % width;
-	            if(row == 0 || col == 0) continue;
+        function Sharp(pixs, width, lamta) {
+            for(var i = 0, len = pixs.length;i < len;i += 4){
+                var ii = i / 4;
+                var row = parseInt(ii / width);
+                var col = ii % width;
+                if(row == 0 || col == 0) continue;
 
-	            var A = ((row - 1) *  width + (col - 1)) * 4;
-	            var B = ((row - 1) * width + col) * 4;
-	            var E = (ii - 1) * 4;
+                var A = ((row - 1) *  width + (col - 1)) * 4;
+                var B = ((row - 1) * width + col) * 4;
+                var E = (ii - 1) * 4;
 
-	            for(var j = 0;j < 3;j ++){
-	                var delta = pixs[i + j] - (pixs[B + j] + pixs[E + j] + pixs[A + j]) / 3;
-	                pixs[i + j] += delta * lamta;
-	            }
-	        }
-		}
-	</script>
+                for(var j = 0;j < 3;j ++){
+                    var delta = pixs[i + j] - (pixs[B + j] + pixs[E + j] + pixs[A + j]) / 3;
+                    pixs[i + j] += delta * lamta;
+                }
+            }
+        }
+    </script>
 </body>
 </html>
