@@ -8,7 +8,7 @@
 	<audio id="audio" autoplay="autoplay" loop="loop">
 		<source src="bgmusic.mp3"></source>
 	</audio>
-	<canvas width="100" height="100" style="border-radius:50%;"></canvas>
+	<canvas width="500" height="500" style="border-radius:50%;"></canvas>
 	<script>
 	    var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 		var canvas = document.querySelector('canvas');
@@ -25,7 +25,7 @@
 
 	    var speed = 2;
 		var dx = 0;
-		var DX = WIDTH/25;
+		var DX = 8;
 		var dt = 2*WIDTH;
 		var T = Math.PI / dt;
 		var startY = HEIGHT/2;
@@ -78,7 +78,7 @@
 				for(var i = 0;i < speed;i++){
 					if (dx%dt === 0) {
 						analyser.getByteTimeDomainData(dataArray);
-						A = dataArray[0]/5.12;
+						A = dataArray[0];
 					}
 					ys.unshift(A*Math.sin(T*dx) + startY);
 					ys.pop();

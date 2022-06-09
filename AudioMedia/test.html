@@ -14,7 +14,7 @@
     <source src="bgmusic.mp3"></source>
   </audio>
   <div class="wrapper">
-    <canvas class="visualizer" width="200" height="200" style="border-radius:50%;"></canvas>
+    <canvas class="visualizer" width="500" height="500" style="border-radius:50%;"></canvas>
     <form class="controls">
       <div>
         <label for="voice">Voice setting</label>
@@ -98,7 +98,7 @@
 
           canvasCtx.beginPath();
 
-          var sliceWidth = 4.0;
+          var sliceWidth = 10.0;
           var x = 0;
           for(var i = 0; i < 50; i++) {
             var v = (outputArr[i] || 128.0) / 128.0;
